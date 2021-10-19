@@ -18,7 +18,7 @@ class Ingredient extends Equatable {
 
   /// Convert our Ingredient to JSON to make it easier when we store it
   /// in the database
-  Map<STring, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         'ingredientId': id,
         'recipeId': recipeId,
         'name': name,
