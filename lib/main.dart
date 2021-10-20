@@ -8,11 +8,17 @@ import 'data/repository.dart';
 import 'network/recipe_service.dart';
 import 'network/service_interface.dart';
 import 'ui/main_screen.dart';
+import 'data/sqlite/sqlite_repository.dart';
 
 Future<void> main() async {
+  //initialize repository
+  final repository = SqliteRepository();
+  await repository.init();
   _setupLogging();
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(MyApp(
+    repository: repository,
+  ));
 }
 
 void _setupLogging() {
@@ -23,33 +29,39 @@ void _setupLogging() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final Repository repository;
+
+  const MyApp({
+    Key? key,
+    required this.repository,
+  }) : super(key: key);
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-        providers: [
-          Provider<Repository>(
-            lazy: false,
-            create: (_) => MemoryRepository(),
-          ),
-          Provider<ServiceInterface>(
-            create: (_) => RecipeService.create(),
-            lazy: false,
-          ),
-        ],
-        child: MaterialApp(
-          title: 'Recipes',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
+      providers: [
+        Provider<Repository>(
+          lazy: false,
+          create: (_) => repository,
+          dispose: (_, Repository repository) => repository.close(),
+        ),
+        Provider<ServiceInterface>(
+          create: (_) => RecipeService.create(),
+          lazy: false,
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Recipes',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
           brightness: Brightness.light,
           primaryColor: Colors.white,
-            primarySwatch: Colors.blue,
-            visualDensity: VisualDensity.adaptivePlatformDensity,
-          ),
-          home: const MainScreen(),
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
+        home: const MainScreen(),
+      ),
     );
   }
 }

@@ -39,23 +39,23 @@ class DatabaseHelper {
     /// [CREATE TABLE]
     await db.execute('''
     CREATE TABLE $recipeTable (
-      $recipeId INTERGER PRIMARY KEY,
+      $recipeId INTEGER PRIMARY KEY,
       label TEXT,
       image TEXT,
       url TEXT,
       calories REAL,
-      totalWeght Real,
-      totalTime Real,
+      totalWeight REAL,
+      totalTime REAL,
     )
     ''');
 
     /// Create [ingredientTable]
     await db.execute(''' 
     CREATE TABLE $ingredientTable (
-      $ingredientId INTERGER PRIMARY KEY,
-      $recipeId INTERGER,
+      $ingredientId INTEGER PRIMARY KEY,
+      $recipeId INTEGER,
       name TEXT,
-      weight Real,
+      weight REAL,
     )
     ''');
   }
@@ -157,5 +157,99 @@ class DatabaseHelper {
         .mapToList((row) => Recipe.fromJson(row));
   }
 
-  /// TODO add watchallingredients
+  Stream<List<Ingredient>> watchAllIngredients() async* {
+    final db = await instance.streamDatabase;
+
+    yield* db
+        .createQuery(ingredientTable)
+        .mapToList((row) => Ingredient.fromJson(row));
+  }
+
+  /// Finds recipe by id using [where] method
+  Future<Recipe> findRecipeById(int id) async {
+    final db = await instance.streamDatabase;
+    final recipeList = await db.query(recipeTable, where: 'id = $id');
+
+    final recipes = parseRecipes(recipeList);
+
+    return recipes.first;
+  }
+
+  Future<List<Ingredient>> findAllIngredients() async {
+    final db = await instance.streamDatabase;
+    final ingredientList = await db.query(ingredientTable);
+    final ingredients = parseIngredients(ingredientList);
+    return ingredients;
+  }
+
+  Future<List<Ingredient>> findRecipeIngredients(int recipeId) async {
+    final db = await instance.streamDatabase;
+    final ingredientList =
+        await db.query(ingredientTable, where: 'recipeId = $recipeId');
+    final ingredients = parseIngredients(ingredientList);
+    return ingredients;
+  }
+
+  /// Take the table name and the JSON map
+  Future<int> insert(String table, Map<String, dynamic> row) async {
+    final db = await instance.streamDatabase;
+
+    /// Use Sqlbrite's insert()
+    return db.insert(table, row);
+  }
+
+  Future<int> insertRecipe(Recipe recipe) {
+    /// Return values from insert() using the recipe's table and JSON data
+    return insert(recipeTable, recipe.toJson());
+  }
+
+  Future<int> insertIngredient(Ingredient ingredient) {
+    /// Return values from insert() using ingredient's table and JSON data
+    return insert(ingredientTable, ingredient.toJson());
+  }
+
+// which will delete data from the table with the provided column and row id
+  Future<int> _delete(String table, String columnId, int id) async {
+    final db = await instance.streamDatabase;
+    // Delete a row where columndId equals the passed-in id
+    return db.delete(table, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteRecipe(Recipe recipe) async {
+    /// Call [_delete()] which deletes a recipe with the passed ID
+    if (recipe.id != null) {
+      return _delete(recipeTable, recipeId, recipe.id!);
+    } else {
+      return Future.value(-1);
+    }
+  }
+
+  Future<int> deleteIngredient(Ingredient ingredient) async {
+    if (ingredient.id != null) {
+      return _delete(ingredientTable, ingredientId, ingredient.id!);
+    } else {
+      return Future.value(-1);
+    }
+  }
+
+  Future<void> deleteIngredients(List<Ingredient> ingredients) {
+    /// For each ingredient delete that entry from the ingredients table
+    ingredients.forEach((ingredient) {
+      if (ingredient.id != null) {
+        _delete(ingredientTable, ingredientId, ingredient.id!);
+      }
+    });
+    return Future.value();
+  }
+
+  Future<int> deleteRecipeIngredients(int id) async {
+    final db = await instance.streamDatabase;
+
+    /// Delete all ingredients that have the given [recipeId]
+    return db.delete(ingredientTable, where: '$recipeId = ?', whereArgs: [id]);
+  }
+
+  void close() {
+    _streamDatabase.close();
+  }
 }
