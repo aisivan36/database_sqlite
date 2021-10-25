@@ -5,12 +5,9 @@ import '../models/models.dart';
 
 part 'moor_db.g.dart';
 
-// 1
 class MoorRecipe extends Table {
-  //2
   IntColumn get id => integer().autoIncrement()();
 
-  //3
   TextColumn get label => text()();
 
   TextColumn get image => text()();
